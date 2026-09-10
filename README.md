@@ -1,6 +1,7 @@
 # Goldman Sachs - Financial Risk & Transaction Analysis 📊💳
+🚀 **Live Interactive Dashboard:** [View Live Streamlit App](https://goldman-sachs-financial-risk-analysis-harsh.streamlit.app/)  
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/Harsh-2404/Goldman-Sachs-Financial-Risk-Analysis/blob/main/Goldman_Financial_Risk_Analysis.ipynb)
+📖 **Interactive Code Notebook:** [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/Harsh-2404/Goldman-Sachs-Financial-Risk-Analysis/blob/main/Goldman_Financial_Risk_Analysis.ipynb)
 
 ## 📌 Project Overview
 This project performs a detailed financial transaction and risk analysis on customer dataset for Goldman Sachs using Python. The primary objective is to evaluate transactional behavior, track account performance, segment customers, identify financial risks (overdrafts & transaction anomalies), and conduct hypothesis testing.
