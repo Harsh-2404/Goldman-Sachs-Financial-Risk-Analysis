@@ -4,22 +4,21 @@ import pandas as pd
 import seaborn as sns
 import streamlit as st
 
-# Page Configuration
+# Page Setup
 st.set_page_config(
     page_title="Goldman Sachs Financial Risk Dashboard",
     page_icon="📊",
     layout="wide",
 )
 
-# Title & Overview
 st.title("📊 Goldman Sachs - Financial Risk & Anomaly Analysis")
 st.markdown(
     "Interactive Financial Risk Dashboard analyzing customer transaction trends,"
-    " account balances, volatility, and anomaly detection."
+    " regional distributions, and risk metrics."
 )
 
 
-# Load Cleaned Data
+# Load Data
 @st.cache_data
 def load_data():
   return pd.read_csv("clean_goldman_sachs.csv")
@@ -28,78 +27,124 @@ def load_data():
 try:
   df = load_data()
 
-  # Sidebar Controls
+  # Sidebar Filters
   st.sidebar.header("🔍 Filter Options")
 
-  # Account Type Filter (if present, else fallback)
-  if "account_type" in df.columns:
-    acc_types = df["account_type"].unique().tolist()
-    selected_acc = st.sidebar.multiselect(
-        "Select Account Type", acc_types, default=acc_types
-    )
-    df_filtered = df[df["account_type"].isin(selected_acc)]
-  else:
-    df_filtered = df.copy()
+  # Account Type Filter
+  acc_types = (
+      df["AccountType"].dropna().unique().tolist()
+      if "AccountType" in df.columns
+      else []
+  )
+  selected_acc = st.sidebar.multiselect(
+      "Select Account Type", acc_types, default=acc_types
+  )
 
-  # High-Level KPIs
+  # Region Filter
+  regions = (
+      df["Region"].dropna().unique().tolist() if "Region" in df.columns else []
+  )
+  selected_region = st.sidebar.multiselect(
+      "Select Region", regions, default=regions
+  )
+
+  # Filter Data
+  df_filtered = df.copy()
+  if selected_acc and "AccountType" in df.columns:
+    df_filtered = df_filtered[df_filtered["AccountType"].isin(selected_acc)]
+  if selected_region and "Region" in df.columns:
+    df_filtered = df_filtered[df_filtered["Region"].isin(selected_region)]
+
+  # High Level Metrics (KPIs)
   st.subheader("📌 Key Financial Metrics")
-  kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+  k1, k2, k3, k4 = st.columns(4)
 
-  total_records = len(df_filtered)
-  kpi1.metric("Total Transactions", f"{total_records:,}")
+  k1.metric("Total Transactions", f"{len(df_filtered):,}")
 
-  if "account_balance" in df.columns:
-    avg_balance = df_filtered["account_balance"].mean()
-    kpi2.metric("Average Balance", f"${avg_balance:,.2f}")
+  if "TransactionAmount" in df.columns:
+    avg_val = df_filtered["TransactionAmount"].mean()
+    total_val = df_filtered["TransactionAmount"].sum()
+    k2.metric("Average Transaction", f"${avg_val:,.2f}")
+    k3.metric("Total Volume", f"${total_val:,.2f}")
 
-  if "debit_amount" in df.columns:
-    total_debit = df_filtered["debit_amount"].sum()
-    kpi3.metric("Total Debits", f"${total_debit:,.2f}")
-
-  if "credit_amount" in df.columns:
-    total_credit = df_filtered["credit_amount"].sum()
-    kpi4.metric("Total Credits", f"${total_credit:,.2f}")
+  if "CustomerID" in df.columns:
+    unique_cust = df_filtered["CustomerID"].nunique()
+    k4.metric("Unique Customers", f"{unique_cust:,}")
 
   st.markdown("---")
 
-  # Visualizations Layout
+  # Visualizations
   col1, col2 = st.columns(2)
 
   with col1:
-    st.subheader("📈 Balance Distribution")
-    if "account_balance" in df.columns:
-      fig, ax = plt.subplots(figsize=(6, 4))
+    st.subheader("📈 Transaction Amount Distribution")
+    if "TransactionAmount" in df.columns:
+      fig1, ax1 = plt.subplots(figsize=(6, 4))
       sns.histplot(
-          df_filtered["account_balance"], kde=True, ax=ax, color="#1f77b4"
+          df_filtered["TransactionAmount"], kde=True, ax=ax1, color="#1f77b4"
       )
-      ax.set_title("Customer Account Balance Density")
-      st.pyplot(fig)
+      ax1.set_title("Distribution of Transaction Amounts")
+      ax1.set_xlabel("Transaction Amount ($)")
+      st.pyplot(fig1)
 
   with col2:
-    st.subheader("💳 Debit vs Credit Flow")
-    if "debit_amount" in df.columns and "credit_amount" in df.columns:
-      flow_data = pd.DataFrame({
-          "Type": ["Total Debits", "Total Credits"],
-          "Amount": [
-              df_filtered["debit_amount"].sum(),
-              df_filtered["credit_amount"].sum(),
-          ],
-      })
+    st.subheader("💳 Volume by Transaction Type")
+    if "TransactionType" in df.columns and "TransactionAmount" in df.columns:
+      type_summary = (
+          df_filtered.groupby("TransactionType")["TransactionAmount"]
+          .sum()
+          .reset_index()
+      )
       fig2, ax2 = plt.subplots(figsize=(6, 4))
       sns.barplot(
-          data=flow_data, x="Type", y="Amount", palette="Blues_d", ax=ax2
+          data=type_summary,
+          x="TransactionType",
+          y="TransactionAmount",
+          palette="Blues_d",
+          ax=ax2,
       )
-      ax2.set_title("Total Transaction Volume Flow")
+      ax2.set_title("Total Amount by Transaction Type")
+      ax2.set_ylabel("Total Amount ($)")
       st.pyplot(fig2)
 
   st.markdown("---")
 
-  # Raw Data View
+  # Second Row Visualizations
+  col3, col4 = st.columns(2)
+
+  with col3:
+    st.subheader("🌍 Regional Transaction Breakup")
+    if "Region" in df.columns:
+      fig3, ax3 = plt.subplots(figsize=(6, 4))
+      sns.countplot(
+          data=df_filtered,
+          x="Region",
+          palette="viridis",
+          ax=ax3,
+          order=df_filtered["Region"].value_counts().index,
+      )
+      ax3.set_title("Transaction Count by Region")
+      st.pyplot(fig3)
+
+  with col4:
+    st.subheader("📦 Product Wise Distribution")
+    if "Product" in df.columns:
+      fig4, ax4 = plt.subplots(figsize=(6, 4))
+      sns.countplot(
+          data=df_filtered,
+          y="Product",
+          palette="mako",
+          ax=ax4,
+          order=df_filtered["Product"].value_counts().index,
+      )
+      ax4.set_title("Transaction Count by Product")
+      st.pyplot(fig4)
+
+  st.markdown("---")
+
+  # Table
   st.subheader("📋 Dataset Preview")
-  st.dataframe(df_filtered.head(50), use_container_width=True)
+  st.dataframe(df_filtered.head(100), use_container_width=True)
 
 except Exception as e:
-  st.error(
-      f"Data file 'clean_goldman_sachs.csv' not found or error loading data:"
-      f" {e}"
-  )
+  st.error(f"Error loading dashboard: {e}")
