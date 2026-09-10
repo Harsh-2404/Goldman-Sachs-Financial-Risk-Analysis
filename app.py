@@ -11,11 +11,11 @@ st.set_page_config(
     layout="wide",
 )
 
-st.title("📊 Goldman Sachs - Financial Risk & Anomaly Analysis")
+st.title("📊 Goldman Sachs - Executive Financial Risk & Analytics")
 st.markdown(
-    "Interactive Financial Risk Dashboard analyzing transaction trends, customer"
-    " behavioral segmentation, anomaly detection, and statistical hypothesis"
-    " testing."
+    "Enterprise-grade financial dashboard providing real-time insights into"
+    " transaction trends, anomaly detection, behavioral segmentation, and"
+    " statistical risk analysis."
 )
 
 
@@ -29,7 +29,7 @@ try:
   df = load_data()
 
   # Sidebar Filters
-  st.sidebar.header("🔍 Interactive Filters")
+  st.sidebar.header("🔍 Global Interactive Filters")
 
   # Filter 1: Account Type
   acc_types = (
@@ -66,7 +66,7 @@ try:
   if selected_products and "Product" in df.columns:
     df_filtered = df_filtered[df_filtered["Product"].isin(selected_products)]
 
-  # --- Section 1: Executive KPI Metrics ---
+  # --- TOP FIXED SECTION: KEY EXECUTIVE KPI METRICS ---
   st.subheader("📌 Key Executive Metrics")
   k1, k2, k3, k4 = st.columns(4)
 
@@ -75,134 +75,231 @@ try:
   if "TransactionAmount" in df.columns:
     avg_val = df_filtered["TransactionAmount"].mean()
     total_val = df_filtered["TransactionAmount"].sum()
-    k2.metric("Average Transaction", f"${avg_val:,.2f}")
-    k3.metric("Total Volume", f"${total_val:,.2f}")
+    k2.metric("Avg Transaction Size", f"${avg_val:,.2f}")
+    k3.metric("Total Transaction Volume", f"${total_val:,.2f}")
 
   if "CustomerID" in df.columns:
     unique_cust = df_filtered["CustomerID"].nunique()
-    k4.metric("Unique Customers", f"{unique_cust:,}")
+    k4.metric("Unique Customer Base", f"{unique_cust:,}")
 
   st.markdown("---")
 
-  # --- Section 2: Task 2 & 3 - Transactional Analysis & Distribution ---
-  st.subheader("📈 Section 1: Transaction & Balance Distributions")
-  col1, col2 = st.columns(2)
+  # --- ENTERPRISE TAB NAVIGATION ---
+  tab1, tab2, tab3, tab4 = st.tabs([
+      "📊 Tab 1: Executive Overview",
+      "⚠️ Tab 2: Risk & Anomaly Management",
+      "🌍 Tab 3: Customer & Portfolio Profiling",
+      "🧪 Tab 4: Hypothesis & Data Engine",
+  ])
 
-  with col1:
-    st.markdown("#### Transaction Amount Density (KDE)")
-    if "TransactionAmount" in df.columns:
-      fig1, ax1 = plt.subplots(figsize=(6, 4))
-      sns.histplot(
-          df_filtered["TransactionAmount"], kde=True, ax=ax1, color="#1f77b4"
-      )
-      ax1.set_title("Distribution of Transaction Amounts")
-      ax1.set_xlabel("Transaction Amount ($)")
-      st.pyplot(fig1)
+  # ==========================================
+  # TAB 1: EXECUTIVE OVERVIEW & TRENDS
+  # ==========================================
+  with tab1:
+    st.caption("Strategic high-level view of cash flows and volume density.")
+    c1, c2 = st.columns(2)
 
-  with col2:
-    st.markdown("#### Transaction Volume by Type")
-    if "TransactionType" in df.columns and "TransactionAmount" in df.columns:
-      type_summary = (
-          df_filtered.groupby("TransactionType")["TransactionAmount"]
+    with c1:
+      st.markdown("#### Transaction Amount Density (KDE)")
+      if "TransactionAmount" in df.columns:
+        fig1, ax1 = plt.subplots(figsize=(6, 4))
+        sns.histplot(
+            df_filtered["TransactionAmount"], kde=True, ax=ax1, color="#003366"
+        )
+        ax1.set_title("Transaction Amount Distribution Density")
+        ax1.set_xlabel("Transaction Amount ($)")
+        st.pyplot(fig1)
+
+    with c2:
+      st.markdown("#### Transaction Volume by Type")
+      if "TransactionType" in df.columns and "TransactionAmount" in df.columns:
+        type_summary = (
+            df_filtered.groupby("TransactionType")["TransactionAmount"]
+            .sum()
+            .reset_index()
+        )
+        fig2, ax2 = plt.subplots(figsize=(6, 4))
+        sns.barplot(
+            data=type_summary,
+            x="TransactionType",
+            y="TransactionAmount",
+            palette="Blues_r",
+            ax=ax2,
+        )
+        ax2.set_title("Volume ($) by Transaction Category")
+        ax2.set_ylabel("Total Volume ($)")
+        st.pyplot(fig2)
+
+    # Monthly Trend (if TransactionDate column exists)
+    if "TransactionDate" in df.columns:
+      st.markdown("#### Monthly Transaction Trend")
+      df_filtered["MonthYear"] = pd.to_datetime(
+          df_filtered["TransactionDate"], errors="coerce"
+      ).dt.to_period("M")
+      trend_df = (
+          df_filtered.groupby("MonthYear")["TransactionAmount"]
           .sum()
           .reset_index()
       )
-      fig2, ax2 = plt.subplots(figsize=(6, 4))
-      sns.barplot(
-          data=type_summary,
-          x="TransactionType",
+      trend_df["MonthYear"] = trend_df["MonthYear"].astype(str)
+
+      fig_trend, ax_trend = plt.subplots(figsize=(12, 3))
+      sns.lineplot(
+          data=trend_df,
+          x="MonthYear",
           y="TransactionAmount",
-          palette="Blues_d",
-          ax=ax2,
+          marker="o",
+          color="#008080",
+          ax=ax_trend,
       )
-      ax2.set_title("Total Amount by Transaction Type")
-      ax2.set_ylabel("Total Amount ($)")
-      st.pyplot(fig2)
+      ax_trend.set_title("Monthly Gross Transaction Volume Flow")
+      plt.xticks(rotation=45)
+      st.pyplot(fig_trend)
 
-  st.markdown("---")
+  # ==========================================
+  # TAB 2: RISK & ANOMALY MANAGEMENT
+  # ==========================================
+  with tab2:
+    st.caption(
+        "Audit & Fraud Unit: Outlier identification and risk exposure"
+        " distributions."
+    )
+    c3, c4 = st.columns(2)
 
-  # --- Section 3: Task 4 - Financial Risk & Outliers ---
-  st.subheader("⚠️ Section 2: Financial Risk & Anomaly Detection")
-  col3, col4 = st.columns(2)
+    with c3:
+      st.markdown("#### Outlier Detection (IQR Method)")
+      if "TransactionAmount" in df.columns:
+        fig3, ax3 = plt.subplots(figsize=(6, 4))
+        sns.boxplot(
+            x=df_filtered["TransactionAmount"], ax=ax3, color="#d9534f"
+        )
+        ax3.set_title("Transaction Value Outliers & Extremes")
+        ax3.set_xlabel("Transaction Amount ($)")
+        st.pyplot(fig3)
 
-  with col3:
-    st.markdown("#### Outlier Detection (Boxplot)")
-    if "TransactionAmount" in df.columns:
-      fig3, ax3 = plt.subplots(figsize=(6, 4))
-      sns.boxplot(
-          x=df_filtered["TransactionAmount"], ax=ax3, color="#d62728"
+    with c4:
+      st.markdown("#### Risk Distribution Across Products")
+      if "Product" in df.columns and "TransactionAmount" in df.columns:
+        fig4, ax4 = plt.subplots(figsize=(6, 4))
+        sns.boxplot(
+            data=df_filtered,
+            x="TransactionAmount",
+            y="Product",
+            palette="Oranges",
+            ax=ax4,
+        )
+        ax4.set_title("Transaction Volatility by Product Category")
+        st.pyplot(fig4)
+
+    # Correlation Matrix Section
+    num_cols = df_filtered.select_dtypes(include=[np.number]).columns
+    if len(num_cols) > 1:
+      st.markdown("#### Numeric Feature Correlation Heatmap")
+      fig_corr, ax_corr = plt.subplots(figsize=(8, 3))
+      sns.heatmap(
+          df_filtered[num_cols].corr(),
+          annot=True,
+          cmap="coolwarm",
+          fmt=".2f",
+          ax=ax_corr,
       )
-      ax3.set_title("Transaction Amount Outlier Analysis (IQR Method)")
-      ax3.set_xlabel("Transaction Amount ($)")
-      st.pyplot(fig3)
+      ax_corr.set_title("Financial Metrics Correlation Grid")
+      st.pyplot(fig_corr)
 
-  with col4:
-    st.markdown("#### Risk Distribution Across Products")
-    if "Product" in df.columns and "TransactionAmount" in df.columns:
-      fig4, ax4 = plt.subplots(figsize=(6, 4))
-      sns.boxplot(
-          data=df_filtered,
-          x="TransactionAmount",
-          y="Product",
-          palette="Set2",
-          ax=ax4,
-      )
-      ax4.set_title("Transaction Amount Spread by Financial Product")
-      st.pyplot(fig4)
+  # ==========================================
+  # TAB 3: CUSTOMER & PORTFOLIO PROFILING
+  # ==========================================
+  with tab3:
+    st.caption(
+        "Regional managers & Product leads: Customer distribution analysis."
+    )
+    c5, c6 = st.columns(2)
 
-  st.markdown("---")
+    with c5:
+      st.markdown("#### Regional Breakdown")
+      if "Region" in df.columns:
+        fig5, ax5 = plt.subplots(figsize=(6, 4))
+        sns.countplot(
+            data=df_filtered,
+            x="Region",
+            palette="viridis",
+            ax=ax5,
+            order=df_filtered["Region"].value_counts().index,
+        )
+        ax5.set_title("Transaction Footprint by Region")
+        st.pyplot(fig5)
 
-  # --- Section 4: Task 3 & 5 - Segmentation & Demographics ---
-  st.subheader("🌍 Section 3: Customer & Regional Profiling")
-  col5, col6 = st.columns(2)
+    with c6:
+      st.markdown("#### Product-Wise Transaction Volume")
+      if "Product" in df.columns:
+        fig6, ax6 = plt.subplots(figsize=(6, 4))
+        sns.countplot(
+            data=df_filtered,
+            y="Product",
+            palette="mako",
+            ax=ax6,
+            order=df_filtered["Product"].value_counts().index,
+        )
+        ax6.set_title("Product Adoption Frequency")
+        st.pyplot(fig6)
 
-  with col5:
-    st.markdown("#### Regional Breakdown")
-    if "Region" in df.columns:
-      fig5, ax5 = plt.subplots(figsize=(6, 4))
+    # Account Type Distribution
+    if "AccountType" in df.columns:
+      st.markdown("#### Portfolio Share by Account Type")
+      fig_acc, ax_acc = plt.subplots(figsize=(8, 3))
       sns.countplot(
           data=df_filtered,
-          x="Region",
-          palette="viridis",
-          ax=ax5,
-          order=df_filtered["Region"].value_counts().index,
+          x="AccountType",
+          palette="Purples_r",
+          ax=ax_acc,
+          order=df_filtered["AccountType"].value_counts().index,
       )
-      ax5.set_title("Transaction Count by Region")
-      st.pyplot(fig5)
+      ax_acc.set_title("Account Type Distribution Across Filtered Base")
+      st.pyplot(fig_acc)
 
-  with col6:
-    st.markdown("#### Product-Wise Volume")
-    if "Product" in df.columns:
-      fig6, ax6 = plt.subplots(figsize=(6, 4))
-      sns.countplot(
-          data=df_filtered,
-          y="Product",
-          palette="mako",
-          ax=ax6,
-          order=df_filtered["Product"].value_counts().index,
+  # ==========================================
+  # TAB 4: HYPOTHESIS & DATA ENGINE
+  # ==========================================
+  with tab4:
+    st.subheader("🧪 Statistical Hypothesis Testing Results")
+    st.markdown("""
+        > **Executive Insight:** Quantitative validation of portfolio behavior using two-sample t-tests ($\alpha = 0.05$).
+        """)
+
+    h1, h2 = st.columns(2)
+    with h1:
+      st.success("##### Test 1: Volume vs Balance")
+      st.write("**Null Hypothesis ($H_0$):** High Volume = Low Volume Balances")
+      st.write("**P-Value:** `0.9078` (Fail to Reject $H_0$)")
+      st.write(
+          "**Business Impact:** Transaction volume does not significantly impact"
+          " average account balance."
       )
-      ax6.set_title("Transaction Frequency by Product")
-      st.pyplot(fig6)
 
-  st.markdown("---")
+    with h2:
+      st.success("##### Test 2: Activity Frequency vs Balance")
+      st.write(
+          "**Null Hypothesis ($H_0$):** High Activity = Low Activity Balances"
+      )
+      st.write("**P-Value:** `0.8543` (Fail to Reject $H_0$)")
+      st.write(
+          "**Business Impact:** Customer transaction frequency alone does not"
+          " correlate with higher portfolio balances."
+      )
 
-  # --- Section 5: Task 6 - Statistical Hypothesis Testing Results ---
-  st.subheader("🧪 Section 4: Statistical Hypothesis Testing Summary")
-  st.info("""
-    **Hypothesis Test 1:** High Transaction Volume vs Low Transaction Volume Balances
-    - **Result:** $p = 0.9078$ (Fail to reject $H_0$)
-    - **Insight:** Transaction volume shows no statistically significant impact on average customer account balance.
+    st.markdown("---")
 
-    **Hypothesis Test 2:** High Activity vs Low Activity Customer Balances
-    - **Result:** $p = 0.8543$ (Fail to reject $H_0$)
-    - **Insight:** Higher transaction frequency alone does not imply significantly higher account balance.
-    """)
+    st.subheader("📋 Raw Filtered Data Engine")
+    st.dataframe(df_filtered, use_container_width=True, height=300)
 
-  st.markdown("---")
-
-  # --- Section 6: Dataset Table ---
-  st.subheader("📋 Section 5: Filtered Data Preview")
-  st.dataframe(df_filtered.head(100), use_container_width=True)
+    # CSV Download Button
+    csv_data = df_filtered.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        label="📥 Export Filtered Dataset (CSV)",
+        data=csv_data,
+        file_name="goldman_sachs_filtered_report.csv",
+        mime="text/csv",
+    )
 
 except Exception as e:
-  st.error(f"Error loading dashboard: {e}")
+  st.error(f"System Error in rendering dashboard: {e}")
